@@ -5,10 +5,15 @@
         {
           "task": "환요",
           "done": false,
-          "comment": ""
+          "comment": "20캐릭"
         },
         {
           "task": "하원결",
+          "done": true,
+          "comment": "35캐릭"
+        },
+        {
+          "task": "[월간]위업",
           "done": false,
           "comment": ""
         }
@@ -18,6 +23,11 @@
       "염제": [
         {
           "task": "나벨",
+          "done": true,
+          "comment": ""
+        },
+        {
+          "task": "이내",
           "done": false,
           "comment": ""
         }
