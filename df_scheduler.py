@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
-import json, os, sys
+import json
+import os
+import sys
 
 # 저장 파일 위치
 BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
@@ -9,17 +11,19 @@ SAVE_FILE = os.path.join(BASE_DIR, "tasks.json")
 # 군별 색상
 GROUP_COLORS = {
     "공통": "#D3D3D3",
-    "1군": "#40E0D0",   # 태초색 (에메랄드)
+    "1군": "#40E0D0",   # 태초색
     "2군": "#FFFF66",   # 에픽 노랑
-    "3군": "#FFA500",   # 레전드 주황
+    "3군": "#FFA500",   # 레전더리 오렌지
     "4군": "#FF69B4"    # 유니크 핑크
 }
+DONE_COLOR = "#77FF77"  # 완료 연두색
+UNDONE_COLOR = "#FF6666" # 미완료 빨강
 
 class TaskManager:
     def __init__(self, root):
         self.root = root
         self.root.title("던파 숙제 스케줄러 + 벞교 파티")
-        self.root.geometry("1050x1000")
+        self.root.geometry("1000x800")
 
         # 데이터 초기화
         self.tasks = {"공통":{"공통":[]}, "1군":{}, "2군":{}, "3군":{}, "4군":{}}
@@ -63,30 +67,26 @@ class TaskManager:
         self.filter_entry = tk.Entry(filter_frame, width=30)
         self.filter_entry.pack(side=tk.LEFT, padx=5)
         tk.Button(filter_frame, text="적용", command=self.update_treeview).pack(side=tk.LEFT)
-        tk.Button(filter_frame, text="초기화", command=lambda: (self.filter_entry.delete(0,tk.END), self.update_treeview())).pack(side=tk.LEFT, padx=5)
+        tk.Button(filter_frame, text="초기화", command=self.update_treeview).pack(side=tk.LEFT, padx=5)
 
-        # 범례
+        # 범례 표시
         legend_frame = tk.Frame(root)
         legend_frame.pack(pady=5)
         for g,color in GROUP_COLORS.items():
             tk.Label(legend_frame, text=g, bg=color, width=10).pack(side=tk.LEFT, padx=3)
-        tk.Label(legend_frame, text="완료=✔(형광)", fg="green").pack(side=tk.LEFT, padx=3)
-        tk.Label(legend_frame, text="미완료=✘(빨강)", fg="red").pack(side=tk.LEFT, padx=3)
 
         # Treeview
-        columns=("task","status")
+        columns=("task","status","comment")
         self.tree=ttk.Treeview(root, columns=columns, show="headings", height=20)
         self.tree.heading("task", text="숙제")
         self.tree.heading("status", text="상태")
-        self.tree.column("task", width=750)
-        self.tree.column("status", width=100, anchor="center")
+        self.tree.heading("comment", text="코멘트")
+        self.tree.column("task", width=600)
+        self.tree.column("status", width=80, anchor="center")
+        self.tree.column("comment", width=300)
         self.tree.pack(pady=5, fill=tk.X)
         self.tree.bind("<Button-1>", self.on_tree_click)
-
-        # 스타일 변경 (✔ 형광, ✘ 빨강)
-        style = ttk.Style()
-        style.configure("Treeview", rowheight=25, font=("맑은 고딕", 11))
-        style.map("Treeview")
+        self.tree.tag_configure("hover", background="")  # 호버 제거
 
         # 숙제 추가
         entry_frame=tk.Frame(root)
@@ -189,60 +189,68 @@ class TaskManager:
                         entries.extend([(g,char,t) for t in self.tasks[g][char]])
         for g,char,t in entries:
             if keyword and keyword not in t["task"].lower(): continue
-            if t["done"]:
-                status="✔"
-                tags=(g,"done")
-            else:
-                status="✘"
-                tags=(g,"notdone")
-            iid=self.tree.insert("", "end", values=(f"[{char}] {t['task']}", status), tags=tags)
-            # 군별 색
+            status="✔" if t["done"] else "✘"
+            iid=self.tree.insert("", "end", values=(t["task"], status, t.get("comment","")), tags=(g,))
             self.tree.tag_configure(g, background=GROUP_COLORS[g])
-            # 완료 색 (형광), 미완료 색 (빨강)
-            self.tree.tag_configure("done", foreground="green")
-            self.tree.tag_configure("notdone", foreground="red")
+            # 완료/미완료 색
+            if t["done"]:
+                self.tree.tag_configure(f"{iid}_done", background=DONE_COLOR, font=("TkDefaultFont",10,"bold"))
+                self.tree.item(iid, tags=(g,f"{iid}_done"))
+            else:
+                self.tree.tag_configure(f"{iid}_undone", background=UNDONE_COLOR, font=("TkDefaultFont",10,"bold"))
+                self.tree.item(iid, tags=(g,f"{iid}_undone"))
 
-    # ---------------- Treeview 클릭 (완료 토글) ----------------
+    # ---------------- Treeview 클릭 (완료 컬럼만) ----------------
     def on_tree_click(self,event):
         region=self.tree.identify_region(event.x,event.y)
         if region!="cell": return
         col=self.tree.identify_column(event.x)
-        if col!="#2": return  # 상태 컬럼만
+        if col!="#2": return  # 완료 컬럼만
         iid=self.tree.identify_row(event.y)
         if not iid: return
         item=self.tree.item(iid)
-        text=item["values"][0]
-        char=text[1:text.index("]")]
-        task_text=text[text.index("]")+2:]
+        task_text=item["values"][0]
         for g in ["공통","1군","2군","3군","4군"]:
-            if char in self.tasks[g]:
-                for t in self.tasks[g][char]:
+            if self.current_character and g==self.current_group:
+                for t in self.tasks[g][self.current_character]:
                     if t["task"]==task_text:
                         t["done"]=not t["done"]
+            elif self.current_party:
+                for char in self.parties[self.current_party]:
+                    if char in self.tasks[g]:
+                        for t in self.tasks[g][char]:
+                            if t["task"]==task_text:
+                                t["done"]=not t["done"]
         self.update_treeview()
         self.save_data()
 
-    # ---------------- 기타 기능 ----------------
+    # ---------------- 선택 헬퍼 ----------------
     def get_selected_task(self):
         sel=self.tree.selection()
         if not sel: return None,None,None
         item=self.tree.item(sel[0])
-        text=item["values"][0]
-        char=text[1:text.index("]")]
-        task_text=text[text.index("]")+2:]
+        task_text=item["values"][0]
         for g in ["공통","1군","2군","3군","4군"]:
-            if char in self.tasks[g]:
-                for t in self.tasks[g][char]:
+            if self.current_character and g==self.current_group:
+                for t in self.tasks[g][self.current_character]:
                     if t["task"]==task_text:
-                        return g,char,t
+                        return g,self.current_character,t
+            elif self.current_party:
+                for char in self.parties[self.current_party]:
+                    if char in self.tasks[g]:
+                        for t in self.tasks[g][char]:
+                            if t["task"]==task_text:
+                                return g,char,t
         return None,None,None
 
+    # ---------------- 완료/코멘트/삭제 ----------------
     def add_comment(self):
         g,char,t=self.get_selected_task()
         if not t: return
         comment=simpledialog.askstring("코멘트", "코멘트 입력:", initialvalue=t.get("comment",""))
         if comment is not None:
             t["comment"]=comment
+            self.update_treeview()  # 바로 표시
             self.save_data()
 
     def delete_task(self):

@@ -4,17 +4,17 @@
       "공통": [
         {
           "task": "환요",
-          "done": false,
+          "done": true,
           "comment": "20캐릭"
         },
         {
           "task": "하원결",
-          "done": true,
+          "done": false,
           "comment": "35캐릭"
         },
         {
           "task": "[월간]위업",
-          "done": false,
+          "done": true,
           "comment": ""
         }
       ]
