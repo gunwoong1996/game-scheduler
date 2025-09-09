@@ -10,20 +10,20 @@
         },
         {
           "task": "하원결",
-          "done": false,
+          "done": true,
           "comment": "35캐릭",
           "cat": "일일"
         },
         {
           "task": "[월간]위업",
-          "done": false,
+          "done": true,
           "comment": "",
           "cat": "일일"
         },
         {
           "task": "위업",
           "done": true,
-          "comment": "",
+          "comment": "매달8캐릭",
           "cat": "월간"
         },
         {
@@ -38,22 +38,14 @@
       "염제": [
         {
           "task": "나벨",
-          "done": false,
+          "done": true,
           "comment": "",
           "cat": "일일"
         },
         {
           "task": "이내",
-          "done": false,
+          "done": true,
           "comment": "귀찮",
-          "cat": "일일"
-        }
-      ],
-      "수라": [
-        {
-          "task": "나벨",
-          "done": false,
-          "comment": "",
           "cat": "일일"
         }
       ]
@@ -119,12 +111,6 @@
       "트슈",
       "스커",
       "라핌"
-    ],
-    "2업둥2팟": [
-      "수라",
-      "배크",
-      "버서커",
-      "뮤즈"
     ]
   }
 }

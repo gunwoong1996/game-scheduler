@@ -19,6 +19,7 @@ GROUP_COLORS = {
 DONE_COLOR = "#129C05"     # 완료 연두(덜 쨍하게)
 UNDONE_COLOR = "#B30707"   # 미완료 빨강
 
+
 # 숙제 종류
 CATEGORIES = ["일일", "주간", "월간"]
 FILTER_CATEGORIES = ["전체"] + CATEGORIES
@@ -27,7 +28,7 @@ class TaskManager:
     def __init__(self, root):
         self.root = root
         self.root.title("던파 숙제 스케줄러")
-        self.root.geometry("1000x950") #창 크기
+        self.root.geometry("1000x950")
 
         # 데이터 초기화
         # tasks[group][character] = [ {task, done, comment, cat}, ... ]
@@ -41,12 +42,12 @@ class TaskManager:
 
         # --- UI ---
 
-        # 상단: 군/캐릭터 선택
+        # 상단: 군/캐릭터 선택 (각 군별 콤보 + 추가/삭제)
         top_frame = tk.Frame(root)
         top_frame.pack(pady=5)
         self.char_selectors = {}
         for group in ["공통","1군","2군","3군","4군"]:
-            frame = tk.LabelFrame(top_frame, text=group, padx=3, pady=5, bg=GROUP_COLORS[group])
+            frame = tk.LabelFrame(top_frame, text=group, padx=5, pady=5, bg=GROUP_COLORS[group])
             frame.pack(side=tk.LEFT, padx=5)
             if group == "공통":
                 self.char_selectors[group] = ttk.Combobox(frame, values=["공통"], state="readonly", width=12)
@@ -55,10 +56,13 @@ class TaskManager:
             else:
                 self.char_selectors[group] = ttk.Combobox(frame, values=list(self.tasks[group].keys()), state="readonly", width=12)
                 self.char_selectors[group].pack()
-                tk.Button(frame, text="캐릭터 추가", command=lambda g=group: self.add_character(g)).pack(pady=2)
+                btn_row = tk.Frame(frame, bg=GROUP_COLORS[group])
+                btn_row.pack(pady=2)
+                tk.Button(btn_row, text="캐릭터 추가", command=lambda g=group: self.add_character(g)).pack(side=tk.LEFT, padx=2)
+                tk.Button(btn_row, text="캐릭터 삭제", command=lambda g=group: self.delete_character(g)).pack(side=tk.LEFT, padx=2)
             self.char_selectors[group].bind("<<ComboboxSelected>>", lambda e,g=group: self.switch_character(g))
 
-        # 벞교 파티
+        # 벞교 파티 (추가/편집/삭제)
         party_frame = tk.LabelFrame(root, text="벞교 파티", padx=10, pady=5)
         party_frame.pack(pady=5, fill=tk.X)
         self.party_selector = ttk.Combobox(party_frame, values=list(self.parties.keys()), state="readonly", width=30)
@@ -66,8 +70,9 @@ class TaskManager:
         self.party_selector.bind("<<ComboboxSelected>>", lambda e: self.switch_party())
         tk.Button(party_frame, text="파티 추가", command=self.add_party).pack(side=tk.LEFT, padx=5)
         tk.Button(party_frame, text="파티 편집", command=self.edit_party_members).pack(side=tk.LEFT, padx=5)
+        tk.Button(party_frame, text="파티 삭제", command=self.delete_party).pack(side=tk.LEFT, padx=5)  # ★ 추가됨
 
-        # 검색/필터 (종류 필터 추가)
+        # 검색/필터 (종류 필터 포함)
         filter_frame = tk.Frame(root)
         filter_frame.pack(pady=5, fill=tk.X)
         tk.Label(filter_frame, text="검색:").pack(side=tk.LEFT)
@@ -89,7 +94,7 @@ class TaskManager:
         for g,color in GROUP_COLORS.items():
             tk.Label(legend_frame, text=g, bg=color, width=10).pack(side=tk.LEFT, padx=3)
 
-        # Treeview (종류 컬럼 추가)
+        # Treeview (종류 컬럼 포함)
         columns=("cat","task","status","comment")
         self.tree=ttk.Treeview(root, columns=columns, show="headings", height=24)
         self.tree.heading("cat", text="종류")
@@ -97,9 +102,9 @@ class TaskManager:
         self.tree.heading("status", text="상태")
         self.tree.heading("comment", text="코멘트")
 
-        self.tree.column("cat", width=80, anchor="center")
-        self.tree.column("task", width=630)
-        self.tree.column("status", width=80, anchor="center")
+        self.tree.column("cat", width=50, anchor="center")
+        self.tree.column("task", width=650)
+        self.tree.column("status", width=50, anchor="center")
         self.tree.column("comment", width=300)
         self.tree.pack(pady=5, fill=tk.BOTH, expand=True)
 
@@ -121,11 +126,6 @@ class TaskManager:
             borderwidth=0,
             relief="flat"
         )
-        
-        #style.map("Treeview", background=[("selected", "white")], foreground=[("selected", "black")]) 
-      
-
-        self.tree.bind("<Button-1>", self.on_tree_click)
 
         # 숙제 추가
         entry_frame=tk.Frame(root)
@@ -150,15 +150,45 @@ class TaskManager:
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.switch_character("공통")
 
-    # ---------------- 캐릭터 & 파티 ----------------
+    # ---------------- 캐릭터 ----------------
     def add_character(self, group):
         name = simpledialog.askstring("캐릭터 추가", f"{group}에 추가할 캐릭터 이름(직업명 포함 추천):")
-        if name and name not in self.tasks[group]:
-            self.tasks[group][name]=[]
-            self.char_selectors[group]["values"]=list(self.tasks[group].keys())
-            self.char_selectors[group].set(name)
-            self.switch_character(group)
-            self.save_data()
+        if not name:
+            return
+        if name in self.tasks[group]:
+            messagebox.showinfo("알림", "이미 존재하는 캐릭터입니다.")
+            return
+        self.tasks[group][name]=[]
+        self.char_selectors[group]["values"]=list(self.tasks[group].keys())
+        self.char_selectors[group].set(name)
+        self.switch_character(group)
+        self.save_data()
+
+    def delete_character(self, group):
+        if group == "공통":
+            messagebox.showinfo("알림","공통은 삭제할 수 없습니다.")
+            return
+        name = self.char_selectors[group].get()
+        if not name:
+            messagebox.showinfo("알림","삭제할 캐릭터를 선택하세요.")
+            return
+        if name not in self.tasks[group]:
+            messagebox.showinfo("알림","해당 캐릭터가 없습니다.")
+            return
+        if not messagebox.askyesno("확인", f"'{name}' 캐릭터를 {group}에서 삭제할까요?"):
+            return
+        # 캐릭터 삭제
+        del self.tasks[group][name]
+        # 파티에서 제거
+        for p in list(self.parties.keys()):
+            if name in self.parties[p]:
+                self.parties[p].remove(name)
+        # 콤보 갱신
+        self.char_selectors[group]["values"]=list(self.tasks[group].keys())
+        self.char_selectors[group].set('')
+        # 화면 갱신 및 저장
+        self.save_data()
+        self.update_treeview()
 
     def switch_character(self, group):
         self.current_group=group
@@ -167,14 +197,34 @@ class TaskManager:
         self.party_selector.set('')
         self.update_treeview()
 
+    # ---------------- 파티 ----------------
     def add_party(self):
         name=simpledialog.askstring("파티 추가","파티 이름:")
         if not name: return
+        if name in self.parties:
+            messagebox.showinfo("알림","이미 존재하는 파티명입니다.")
+            return
         members=simpledialog.askstring("파티 구성","캐릭터 이름 ','로 구분:")
-        if members: self.parties[name]=[m.strip() for m in members.split(",")]
+        self.parties[name]=[]
+        if members:
+            self.parties[name]=[m.strip() for m in members.split(",") if m.strip()]
         self.party_selector["values"]=list(self.parties.keys())
         self.party_selector.set(name)
         self.switch_party()
+        self.save_data()
+
+    def delete_party(self):
+        party = self.party_selector.get()
+        if not party:
+            messagebox.showinfo("알림","삭제할 파티를 선택하세요.")
+            return
+        if not messagebox.askyesno("확인", f"'{party}' 파티를 삭제할까요?"):
+            return
+        del self.parties[party]
+        self.party_selector["values"]=list(self.parties.keys())
+        self.party_selector.set('')
+        self.current_party=None
+        self.update_treeview()
         self.save_data()
 
     def switch_party(self):
@@ -248,13 +298,14 @@ class TaskManager:
                 continue
 
             status="✔" if t.get("done") else "✘"
-            # 행 추가 (종류/숙제/상태/코멘트)
-            iid=self.tree.insert("", "end",
-                                 values=(t.get("cat",""), f"[{char}] {t.get('task','')}", status, t.get("comment","")),
-                                 tags=(g,))
+            iid=self.tree.insert(
+                "", "end",
+                values=(t.get("cat",""), f"[{char}] {t.get('task','')}", status, t.get("comment","")),
+                tags=(g,)
+            )
             # 군별 배경
             self.tree.tag_configure(g, background=GROUP_COLORS[g], font=("맑은 고딕", 10, "bold"))
-            # 상태 색상(행 전경색) - Treeview 한계상 행 전체 전경색이 바뀌지만 ✔/✘이 가장 눈에 띔
+            # 상태 색상(행 전경색)
             if t.get("done"):
                 self.tree.tag_configure(f"{iid}_done", foreground=DONE_COLOR)
                 self.tree.item(iid, tags=(g, f"{iid}_done"))
@@ -272,7 +323,6 @@ class TaskManager:
         if not iid: return
         item=self.tree.item(iid)
         cat_val, taskcol, _status, _comment = item["values"]
-        # taskcol은 "[캐릭] 내용"
         try:
             char = taskcol[1:taskcol.index("]")]
             task_text = taskcol[taskcol.index("]")+2:]
@@ -281,14 +331,12 @@ class TaskManager:
         # 위치 찾기 & 토글
         for g in ["공통","1군","2군","3군","4군"]:
             if self.current_party:
-                # 파티 보기일 때는 모든 군 체크
                 if char in self.tasks[g]:
                     for t in self.tasks[g][char]:
                         if t.get("task")==task_text and t.get("cat","")==cat_val:
                             t["done"]=not t.get("done",False)
                             break
             else:
-                # 캐릭터 보기일 때는 현재 군만
                 if self.current_group==g and char in self.tasks[g]:
                     for t in self.tasks[g][char]:
                         if t.get("task")==task_text and t.get("cat","")==cat_val:
@@ -370,12 +418,12 @@ class TaskManager:
                 with open(SAVE_FILE,"r",encoding="utf-8") as f:
                     data=json.load(f)
                     self.tasks=data.get("tasks",self.tasks)
-                    # cat 필드가 없던 예전 데이터 보정
+                    # cat 필드 없었던 예전 데이터 보정
                     for g in self.tasks:
                         for ch in self.tasks[g]:
                             for t in self.tasks[g][ch]:
                                 if "cat" not in t:
-                                    t["cat"]="일일"  # 기본값
+                                    t["cat"]="일일"
                     self.parties=data.get("parties",{})
             except:
                 messagebox.showwarning("경고","저장된 데이터를 불러올 수 없습니다.")
