@@ -8,25 +8,28 @@ import sys
 BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
 SAVE_FILE = os.path.join(BASE_DIR, "tasks.json")
 
-# 군별 색상
+# 색상 정의
 GROUP_COLORS = {
     "공통": "#D3D3D3",
-    "1군": "#40E0D0",   # 태초색
+    "1군": "#40E0D0",   # 태초색 (에메랄드)
     "2군": "#FFFF66",   # 에픽 노랑
-    "3군": "#FFA500",   # 레전더리 오렌지
+    "3군": "#FFA500",   # 레전드 오렌지
     "4군": "#FF69B4"    # 유니크 핑크
 }
-DONE_COLOR = "#77FF77"  # 완료 연두색
-UNDONE_COLOR = "#FF6666" # 미완료 빨강
+DONE_COLOR = "#7CFC00"   # 연한 형광 연두
+NOT_DONE_COLOR = "#FF0000"  # 빨강
 
+
+
+# TaskManager 클래스
 class TaskManager:
     def __init__(self, root):
         self.root = root
         self.root.title("던파 숙제 스케줄러 + 벞교 파티")
-        self.root.geometry("1000x800")
+        self.root.geometry("1100x850")
 
         # 데이터 초기화
-        self.tasks = {"공통":{"공통":[]}, "1군":{}, "2군":{}, "3군":{}, "4군":{}}
+        self.tasks = {"공통": {"공통": []}, "1군": {}, "2군": {}, "3군": {}, "4군": {}}
         self.parties = {}
         self.load_data()
 
@@ -34,22 +37,22 @@ class TaskManager:
         self.current_character = None
         self.current_party = None
 
-        # --- UI ---
+        # ---------------- UI ----------------
         top_frame = tk.Frame(root)
         top_frame.pack(pady=5)
         self.char_selectors = {}
-        for group in ["공통","1군","2군","3군","4군"]:
-            frame = tk.LabelFrame(top_frame, text=group, padx=5, pady=5)
+        for group in ["공통", "1군", "2군", "3군", "4군"]:
+            frame = tk.LabelFrame(top_frame, text=group, padx=5, pady=5, bg=GROUP_COLORS[group])
             frame.pack(side=tk.LEFT, padx=5)
             if group == "공통":
-                self.char_selectors[group] = ttk.Combobox(frame, values=["공통"], state="readonly", width=10)
+                self.char_selectors[group] = ttk.Combobox(frame, values=["공통"], state="readonly", width=12)
                 self.char_selectors[group].set("공통")
                 self.char_selectors[group].pack()
             else:
-                self.char_selectors[group] = ttk.Combobox(frame, values=list(self.tasks[group].keys()), state="readonly", width=10)
+                self.char_selectors[group] = ttk.Combobox(frame, values=list(self.tasks[group].keys()), state="readonly", width=12)
                 self.char_selectors[group].pack()
                 tk.Button(frame, text="캐릭터 추가", command=lambda g=group: self.add_character(g)).pack(pady=2)
-            self.char_selectors[group].bind("<<ComboboxSelected>>", lambda e,g=group: self.switch_character(g))
+            self.char_selectors[group].bind("<<ComboboxSelected>>", lambda e, g=group: self.switch_character(g))
 
         # 벞교 파티
         party_frame = tk.LabelFrame(root, text="벞교 파티", padx=10, pady=5)
@@ -67,17 +70,11 @@ class TaskManager:
         self.filter_entry = tk.Entry(filter_frame, width=30)
         self.filter_entry.pack(side=tk.LEFT, padx=5)
         tk.Button(filter_frame, text="적용", command=self.update_treeview).pack(side=tk.LEFT)
-        tk.Button(filter_frame, text="초기화", command=self.update_treeview).pack(side=tk.LEFT, padx=5)
-
-        # 범례 표시
-        legend_frame = tk.Frame(root)
-        legend_frame.pack(pady=5)
-        for g,color in GROUP_COLORS.items():
-            tk.Label(legend_frame, text=g, bg=color, width=10).pack(side=tk.LEFT, padx=3)
+        tk.Button(filter_frame, text="초기화", command=self.reset_filter).pack(side=tk.LEFT, padx=5)
 
         # Treeview
-        columns=("task","status","comment")
-        self.tree=ttk.Treeview(root, columns=columns, show="headings", height=20)
+        columns = ("task", "status", "comment")
+        self.tree = ttk.Treeview(root, columns=columns, show="headings", height=25)
         self.tree.heading("task", text="숙제")
         self.tree.heading("status", text="상태")
         self.tree.heading("comment", text="코멘트")
@@ -85,220 +82,246 @@ class TaskManager:
         self.tree.column("status", width=80, anchor="center")
         self.tree.column("comment", width=300)
         self.tree.pack(pady=5, fill=tk.X)
+
+        # 기본 색 설정 (호버 제거 효과)
+        style = ttk.Style()
+
+        try:
+            style.theme_use("clam")  # 선택/배경 매핑 제어가 잘 되는 테마
+        except:
+            pass
+
+        style.configure(
+            "Treeview",
+            font=("맑은 고딕", 10, "bold"),
+            rowheight=24,
+            borderwidth=0,
+            relief="flat"
+        )
+        
+        #style.map("Treeview", background=[("selected", "white")], foreground=[("selected", "black")])
+
         self.tree.bind("<Button-1>", self.on_tree_click)
-        self.tree.tag_configure("hover", background="")  # 호버 제거
 
-        # 숙제 추가
-        entry_frame=tk.Frame(root)
-        entry_frame.pack()
-        self.task_entry=tk.Entry(entry_frame, width=60)
-        self.task_entry.grid(row=0,column=0,padx=5)
-        tk.Button(entry_frame,text="숙제 추가",command=self.add_task).grid(row=0,column=1)
+        # 숙제 입력 + 버튼
+        entry_frame = tk.Frame(root)
+        entry_frame.pack(pady=5)
+        self.task_entry = tk.Entry(entry_frame, width=70)
+        self.task_entry.grid(row=0, column=0, padx=5)
+        tk.Button(entry_frame, text="숙제 추가", command=self.add_task).grid(row=0, column=1, padx=5)
 
-        # 버튼
-        button_frame=tk.Frame(root)
+        # 버튼 모음
+        button_frame = tk.Frame(root)
         button_frame.pack(pady=5)
-        tk.Button(button_frame,text="코멘트 추가/보기",command=self.add_comment).grid(row=0,column=0,padx=5)
-        tk.Button(button_frame,text="숙제 삭제",command=self.delete_task).grid(row=0,column=1,padx=5)
-        tk.Button(button_frame,text="전체 완료/해제",command=self.toggle_all_tasks).grid(row=0,column=2,padx=5)
+        tk.Button(button_frame, text="코멘트 추가/보기", command=self.add_comment).grid(row=0, column=0, padx=5)
+        tk.Button(button_frame, text="숙제 삭제", command=self.delete_task).grid(row=0, column=1, padx=5)
+        tk.Button(button_frame, text="전체 완료/해제", command=self.toggle_all_tasks).grid(row=0, column=2, padx=5)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.switch_character("공통")
 
-    # ---------------- 캐릭터 & 파티 ----------------
+    # ---------------- 캐릭터 ----------------
     def add_character(self, group):
         name = simpledialog.askstring("캐릭터 추가", f"{group}에 추가할 캐릭터 이름:")
         if name and name not in self.tasks[group]:
-            self.tasks[group][name]=[]
-            self.char_selectors[group]["values"]=list(self.tasks[group].keys())
+            self.tasks[group][name] = []
+            self.char_selectors[group]["values"] = list(self.tasks[group].keys())
             self.char_selectors[group].set(name)
             self.switch_character(group)
             self.save_data()
 
     def switch_character(self, group):
-        self.current_group=group
-        self.current_character=self.char_selectors[group].get()
-        self.current_party=None
+        self.current_group = group
+        self.current_character = self.char_selectors[group].get()
+        self.current_party = None
         self.party_selector.set('')
         self.update_treeview()
 
+    # ---------------- 파티 ----------------
     def add_party(self):
-        name=simpledialog.askstring("파티 추가","파티 이름:")
-        if not name: return
-        members=simpledialog.askstring("파티 구성","캐릭터 이름 ','로 구분:")
-        if members: self.parties[name]=[m.strip() for m in members.split(",")]
-        self.party_selector["values"]=list(self.parties.keys())
+        name = simpledialog.askstring("파티 추가", "파티 이름:")
+        if not name:
+            return
+        members = simpledialog.askstring("파티 구성", "캐릭터 이름 ','로 구분:")
+        if members:
+            self.parties[name] = [m.strip() for m in members.split(",")]
+        self.party_selector["values"] = list(self.parties.keys())
         self.party_selector.set(name)
         self.switch_party()
         self.save_data()
 
     def switch_party(self):
-        party=self.party_selector.get()
+        party = self.party_selector.get()
         if party in self.parties:
-            self.current_party=party
-            self.current_character=None
-            self.current_group=None
+            self.current_party = party
+            self.current_character = None
+            self.current_group = None
             self.update_treeview()
 
     def edit_party_members(self):
         if not self.current_party:
-            messagebox.showwarning("경고","파티를 선택하세요!")
+            messagebox.showwarning("경고", "파티를 선택하세요!")
             return
-        all_chars=[]
-        for g in ["1군","2군","3군","4군"]:
+        all_chars = []
+        for g in ["1군", "2군", "3군", "4군"]:
             all_chars.extend(list(self.tasks[g].keys()))
-        top=tk.Toplevel(self.root)
+        top = tk.Toplevel(self.root)
         top.title(f"{self.current_party} 편집")
-        vars={}
-        for i,c in enumerate(all_chars):
-            var=tk.BooleanVar(value=(c in self.parties[self.current_party]))
-            tk.Checkbutton(top,text=c,variable=var).grid(row=i//4,column=i%4,sticky="w")
-            vars[c]=var
+        vars = {}
+        for i, c in enumerate(all_chars):
+            var = tk.BooleanVar(value=(c in self.parties[self.current_party]))
+            tk.Checkbutton(top, text=c, variable=var).grid(row=i // 4, column=i % 4, sticky="w")
+            vars[c] = var
+
         def save():
-            self.parties[self.current_party]=[c for c,v in vars.items() if v.get()]
+            self.parties[self.current_party] = [c for c, v in vars.items() if v.get()]
             self.save_data()
             top.destroy()
             self.update_treeview()
-        tk.Button(top,text="확인",command=save).grid(row=(len(all_chars)//4)+1,column=0,columnspan=4)
+
+        tk.Button(top, text="확인", command=save).grid(row=(len(all_chars) // 4) + 1, column=0, columnspan=4)
 
     # ---------------- 숙제 ----------------
     def add_task(self):
-        task=self.task_entry.get()
-        if not task: return
+        task = self.task_entry.get()
+        if not task:
+            return
         if self.current_character:
-            self.tasks[self.current_group][self.current_character].append({"task":task,"done":False,"comment":""})
+            self.tasks[self.current_group][self.current_character].append({"task": task, "done": False, "comment": ""})
         elif self.current_party:
             for char in self.parties[self.current_party]:
-                for g in ["1군","2군","3군","4군"]:
+                for g in ["1군", "2군", "3군", "4군"]:
                     if char in self.tasks[g]:
-                        self.tasks[g][char].append({"task":task,"done":False,"comment":""})
-        self.task_entry.delete(0,tk.END)
+                        self.tasks[g][char].append({"task": task, "done": False, "comment": ""})
+        self.task_entry.delete(0, tk.END)
         self.update_treeview()
         self.save_data()
 
     def update_treeview(self):
         self.tree.delete(*self.tree.get_children())
-        keyword=self.filter_entry.get().strip().lower()
-        entries=[]
+        keyword = self.filter_entry.get().strip().lower()
+        entries = []
         if self.current_character:
-            entries=[(self.current_group,self.current_character,t) for t in self.tasks[self.current_group][self.current_character]]
+            entries = [(self.current_group, self.current_character, t) for t in self.tasks[self.current_group][self.current_character]]
         elif self.current_party:
             for char in self.parties[self.current_party]:
-                for g in ["1군","2군","3군","4군"]:
+                for g in ["1군", "2군", "3군", "4군"]:
                     if char in self.tasks[g]:
-                        entries.extend([(g,char,t) for t in self.tasks[g][char]])
-        for g,char,t in entries:
-            if keyword and keyword not in t["task"].lower(): continue
-            status="✔" if t["done"] else "✘"
-            iid=self.tree.insert("", "end", values=(t["task"], status, t.get("comment","")), tags=(g,))
-            self.tree.tag_configure(g, background=GROUP_COLORS[g])
-            # 완료/미완료 색
+                        entries.extend([(g, char, t) for t in self.tasks[g][char]])
+        for g, char, t in entries:
+            if keyword and keyword not in t["task"].lower():
+                continue
+            status = "✔" if t["done"] else "✘"
+            iid = self.tree.insert("", "end", values=(f"[{char}] {t['task']}", status, t.get("comment", "")), tags=(g,))
             if t["done"]:
-                self.tree.tag_configure(f"{iid}_done", background=DONE_COLOR, font=("TkDefaultFont",10,"bold"))
-                self.tree.item(iid, tags=(g,f"{iid}_done"))
+                self.tree.item(iid, tags=(g, "done"))
+                self.tree.tag_configure("done", foreground=DONE_COLOR)
             else:
-                self.tree.tag_configure(f"{iid}_undone", background=UNDONE_COLOR, font=("TkDefaultFont",10,"bold"))
-                self.tree.item(iid, tags=(g,f"{iid}_undone"))
+                self.tree.tag_configure(g, background=GROUP_COLORS[g])
+                self.tree.tag_configure("notdone", foreground=NOT_DONE_COLOR)
 
-    # ---------------- Treeview 클릭 (완료 컬럼만) ----------------
-    def on_tree_click(self,event):
-        region=self.tree.identify_region(event.x,event.y)
-        if region!="cell": return
-        col=self.tree.identify_column(event.x)
-        if col!="#2": return  # 완료 컬럼만
-        iid=self.tree.identify_row(event.y)
-        if not iid: return
-        item=self.tree.item(iid)
-        task_text=item["values"][0]
-        for g in ["공통","1군","2군","3군","4군"]:
-            if self.current_character and g==self.current_group:
-                for t in self.tasks[g][self.current_character]:
-                    if t["task"]==task_text:
-                        t["done"]=not t["done"]
-            elif self.current_party:
-                for char in self.parties[self.current_party]:
-                    if char in self.tasks[g]:
-                        for t in self.tasks[g][char]:
-                            if t["task"]==task_text:
-                                t["done"]=not t["done"]
+    def reset_filter(self):
+        self.filter_entry.delete(0, tk.END)
+        self.update_treeview()
+
+    def on_tree_click(self, event):
+        region = self.tree.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+        col = self.tree.identify_column(event.x)
+        if col != "#2":  # 상태 컬럼만 클릭 가능
+            return
+        iid = self.tree.identify_row(event.y)
+        if not iid:
+            return
+        item = self.tree.item(iid)
+        text = item["values"][0]
+        char = text[1:text.index("]")]
+        task_text = text[text.index("]") + 2:]
+        for g in ["공통", "1군", "2군", "3군", "4군"]:
+            if char in self.tasks[g]:
+                for t in self.tasks[g][char]:
+                    if t["task"] == task_text:
+                        t["done"] = not t["done"]
         self.update_treeview()
         self.save_data()
 
-    # ---------------- 선택 헬퍼 ----------------
     def get_selected_task(self):
-        sel=self.tree.selection()
-        if not sel: return None,None,None
-        item=self.tree.item(sel[0])
-        task_text=item["values"][0]
-        for g in ["공통","1군","2군","3군","4군"]:
-            if self.current_character and g==self.current_group:
-                for t in self.tasks[g][self.current_character]:
-                    if t["task"]==task_text:
-                        return g,self.current_character,t
-            elif self.current_party:
-                for char in self.parties[self.current_party]:
-                    if char in self.tasks[g]:
-                        for t in self.tasks[g][char]:
-                            if t["task"]==task_text:
-                                return g,char,t
-        return None,None,None
+        sel = self.tree.selection()
+        if not sel:
+            return None, None, None
+        item = self.tree.item(sel[0])
+        text = item["values"][0]
+        char = text[1:text.index("]")]
+        task_text = text[text.index("]") + 2:]
+        for g in ["공통", "1군", "2군", "3군", "4군"]:
+            if char in self.tasks[g]:
+                for t in self.tasks[g][char]:
+                    if t["task"] == task_text:
+                        return g, char, t
+        return None, None, None
 
-    # ---------------- 완료/코멘트/삭제 ----------------
     def add_comment(self):
-        g,char,t=self.get_selected_task()
-        if not t: return
-        comment=simpledialog.askstring("코멘트", "코멘트 입력:", initialvalue=t.get("comment",""))
+        g, char, t = self.get_selected_task()
+        if not t:
+            return
+        comment = simpledialog.askstring("코멘트", "코멘트 입력:", initialvalue=t.get("comment", ""))
         if comment is not None:
-            t["comment"]=comment
-            self.update_treeview()  # 바로 표시
+            t["comment"] = comment
             self.save_data()
+            self.update_treeview()
 
     def delete_task(self):
-        g,char,t=self.get_selected_task()
-        if not t: return
+        g, char, t = self.get_selected_task()
+        if not t:
+            return
         self.tasks[g][char].remove(t)
         self.update_treeview()
         self.save_data()
 
     def toggle_all_tasks(self):
-        all_done=True
-        entries=[]
+        all_done = True
+        entries = []
         if self.current_character:
-            entries=[t for t in self.tasks[self.current_group][self.current_character]]
+            entries = [t for t in self.tasks[self.current_group][self.current_character]]
         elif self.current_party:
             for char in self.parties[self.current_party]:
-                for g in ["1군","2군","3군","4군"]:
-                    if char in self.tasks[g]: entries.extend(self.tasks[g][char])
+                for g in ["1군", "2군", "3군", "4군"]:
+                    if char in self.tasks[g]:
+                        entries.extend(self.tasks[g][char])
         for t in entries:
-            if not t["done"]: all_done=False
-        new_state=not all_done
-        for t in entries: t["done"]=new_state
+            if not t["done"]:
+                all_done = False
+        new_state = not all_done
+        for t in entries:
+            t["done"] = new_state
         self.update_treeview()
         self.save_data()
 
     # ---------------- 저장/불러오기 ----------------
     def save_data(self):
         try:
-            with open(SAVE_FILE,"w",encoding="utf-8") as f:
-                json.dump({"tasks":self.tasks,"parties":self.parties},f,ensure_ascii=False,indent=2)
+            with open(SAVE_FILE, "w", encoding="utf-8") as f:
+                json.dump({"tasks": self.tasks, "parties": self.parties}, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            messagebox.showerror("에러",f"저장 실패: {e}")
+            messagebox.showerror("에러", f"저장 실패: {e}")
 
     def load_data(self):
         if os.path.exists(SAVE_FILE):
             try:
-                with open(SAVE_FILE,"r",encoding="utf-8") as f:
-                    data=json.load(f)
-                    self.tasks=data.get("tasks",self.tasks)
-                    self.parties=data.get("parties",{})
-            except: messagebox.showwarning("경고","저장된 데이터를 불러올 수 없습니다.")
+                with open(SAVE_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    self.tasks = data.get("tasks", self.tasks)
+                    self.parties = data.get("parties", {})
+            except:
+                messagebox.showwarning("경고", "저장된 데이터를 불러올 수 없습니다.")
 
     def on_close(self):
         self.save_data()
         self.root.destroy()
 
 # ---------------- 실행 ----------------
-if __name__=="__main__":
-    root=tk.Tk()
-    app=TaskManager(root)
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = TaskManager(root)
     root.mainloop()

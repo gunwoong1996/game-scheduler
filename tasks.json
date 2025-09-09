@@ -29,7 +29,7 @@
         {
           "task": "이내",
           "done": false,
-          "comment": ""
+          "comment": "8캐릭"
         }
       ],
       "수라": [
@@ -44,7 +44,7 @@
       "트슈": [
         {
           "task": "나벨",
-          "done": false,
+          "done": true,
           "comment": ""
         }
       ],
@@ -60,7 +60,7 @@
       "스커": [
         {
           "task": "나벨",
-          "done": false,
+          "done": true,
           "comment": ""
         }
       ],
@@ -76,7 +76,7 @@
       "라핌": [
         {
           "task": "나벨",
-          "done": false,
+          "done": true,
           "comment": ""
         }
       ],
