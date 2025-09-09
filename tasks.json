@@ -5,17 +5,32 @@
         {
           "task": "환요",
           "done": true,
-          "comment": "20캐릭"
+          "comment": "20캐릭",
+          "cat": "일일"
         },
         {
           "task": "하원결",
           "done": false,
-          "comment": "35캐릭"
+          "comment": "35캐릭",
+          "cat": "일일"
         },
         {
           "task": "[월간]위업",
+          "done": false,
+          "comment": "",
+          "cat": "일일"
+        },
+        {
+          "task": "위업",
           "done": true,
-          "comment": ""
+          "comment": "",
+          "cat": "월간"
+        },
+        {
+          "task": "상던",
+          "done": true,
+          "comment": "",
+          "cat": "주간"
         }
       ]
     },
@@ -23,20 +38,23 @@
       "염제": [
         {
           "task": "나벨",
-          "done": true,
-          "comment": ""
+          "done": false,
+          "comment": "",
+          "cat": "일일"
         },
         {
           "task": "이내",
           "done": false,
-          "comment": "8캐릭"
+          "comment": "귀찮",
+          "cat": "일일"
         }
       ],
       "수라": [
         {
           "task": "나벨",
           "done": false,
-          "comment": ""
+          "comment": "",
+          "cat": "일일"
         }
       ]
     },
@@ -45,14 +63,16 @@
         {
           "task": "나벨",
           "done": true,
-          "comment": ""
+          "comment": "23캐릭",
+          "cat": "일일"
         }
       ],
       "배크": [
         {
           "task": "나벨",
           "done": false,
-          "comment": ""
+          "comment": "",
+          "cat": "일일"
         }
       ]
     },
@@ -60,15 +80,17 @@
       "스커": [
         {
           "task": "나벨",
-          "done": true,
-          "comment": ""
+          "done": false,
+          "comment": "",
+          "cat": "일일"
         }
       ],
       "버서커": [
         {
           "task": "나벨",
           "done": false,
-          "comment": ""
+          "comment": "",
+          "cat": "일일"
         }
       ]
     },
@@ -76,15 +98,17 @@
       "라핌": [
         {
           "task": "나벨",
-          "done": true,
-          "comment": ""
+          "done": false,
+          "comment": "",
+          "cat": "일일"
         }
       ],
       "뮤즈": [
         {
           "task": "나벨",
           "done": false,
-          "comment": ""
+          "comment": "",
+          "cat": "일일"
         }
       ]
     }
