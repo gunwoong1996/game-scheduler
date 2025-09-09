@@ -4,13 +4,13 @@
       "공통": [
         {
           "task": "환요",
-          "done": true,
+          "done": false,
           "comment": "20캐릭",
           "cat": "일일"
         },
         {
           "task": "하원결",
-          "done": true,
+          "done": false,
           "comment": "35캐릭",
           "cat": "일일"
         },
@@ -22,13 +22,13 @@
         },
         {
           "task": "위업",
-          "done": true,
+          "done": false,
           "comment": "매달8캐릭",
           "cat": "월간"
         },
         {
           "task": "상던",
-          "done": true,
+          "done": false,
           "comment": "",
           "cat": "주간"
         }
@@ -47,6 +47,12 @@
           "done": true,
           "comment": "귀찮",
           "cat": "일일"
+        },
+        {
+          "task": "위업",
+          "done": false,
+          "comment": "",
+          "cat": "월간"
         }
       ]
     },
@@ -90,7 +96,7 @@
       "라핌": [
         {
           "task": "나벨",
-          "done": false,
+          "done": true,
           "comment": "",
           "cat": "일일"
         }
