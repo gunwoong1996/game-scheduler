@@ -15,10 +15,10 @@
           "cat": "일일"
         },
         {
-          "task": "위업",
+          "task": "헬",
           "done": true,
-          "comment": "매달8캐릭",
-          "cat": "월간"
+          "comment": "",
+          "cat": "일일"
         },
         {
           "task": "상던",
@@ -27,27 +27,9 @@
           "cat": "주간"
         },
         {
-          "task": "안개신",
+          "task": "베누스",
           "done": false,
-          "comment": "레이드 3인출",
-          "cat": "주간"
-        },
-        {
-          "task": "이내 8캐릭",
-          "done": false,
-          "comment": "레이드",
-          "cat": "주간"
-        },
-        {
-          "task": "나벨",
-          "done": false,
-          "comment": "레이드",
-          "cat": "주간"
-        },
-        {
-          "task": "기록실",
-          "done": true,
-          "comment": "",
+          "comment": "레기온",
           "cat": "주간"
         },
         {
@@ -57,32 +39,74 @@
           "cat": "주간"
         },
         {
-          "task": "헬",
+          "task": "나벨",
           "done": false,
-          "comment": "",
-          "cat": "일일"
+          "comment": "레이드",
+          "cat": "주간"
         },
         {
-          "task": "베누스",
+          "task": "이내 8캐릭",
           "done": false,
-          "comment": "레기온",
+          "comment": "레이드",
           "cat": "주간"
+        },
+        {
+          "task": "안개신",
+          "done": false,
+          "comment": "레이드 3인출",
+          "cat": "주간"
+        },
+        {
+          "task": "기록실",
+          "done": true,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "위업",
+          "done": true,
+          "comment": "매달8캐릭",
+          "cat": "월간"
         }
       ]
     },
     "1군": {
       "염제": [
         {
+          "task": "흉몽",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "여신전 0수쩔",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "베누스 0수쩔",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
           "task": "나벨",
           "done": true,
           "comment": "",
-          "cat": "일일"
+          "cat": "주간"
         },
         {
           "task": "이내",
-          "done": true,
-          "comment": "귀찮",
-          "cat": "일일"
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "안개신",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
         },
         {
           "task": "위업",
@@ -93,7 +117,38 @@
       ],
       "헌터": [],
       "수라": [],
-      "라핌": [],
+      "라핌": [
+        {
+          "task": "흉몽",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "여신전쩔",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "베누스쩔",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "이내",
+          "done": false,
+          "comment": "",
+          "cat": "주간"
+        },
+        {
+          "task": "나벨",
+          "done": true,
+          "comment": "",
+          "cat": "주간"
+        }
+      ],
       "뮤즈": [],
       "인파이터": [],
       "트래블러": [],
@@ -107,7 +162,14 @@
       "런처": [],
       "마신": [],
       "버서커": [],
-      "트슈": []
+      "트슈": [
+        {
+          "task": "나벨",
+          "done": true,
+          "comment": "",
+          "cat": "주간"
+        }
+      ]
     },
     "3군": {
       "꼬홀": [],
@@ -115,10 +177,16 @@
       "배메": [],
       "암제": [],
       "검귀": [],
-      "스커": []
+      "스커": [
+        {
+          "task": "나벨",
+          "done": true,
+          "comment": "",
+          "cat": "주간"
+        }
+      ]
     },
     "4군": {
-      "비질": [],
       "키메라": [],
       "여메카": [],
       "남메카": [],
@@ -130,8 +198,16 @@
       "스파": [],
       "레인저": [],
       "남넨마": [],
-      "뱅가드": []
+      "뱅가드": [],
+      "비질": []
     }
   },
-  "parties": {}
+  "parties": {
+    "나벨 2업둥": [
+      "라핌",
+      "스커",
+      "염제",
+      "트슈"
+    ]
+  }
 }

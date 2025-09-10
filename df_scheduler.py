@@ -19,7 +19,6 @@ GROUP_COLORS = {
 DONE_COLOR = "#129C05"     # 완료 연두(덜 쨍하게)
 UNDONE_COLOR = "#B30707"   # 미완료 빨강
 
-
 # 숙제 종류
 CATEGORIES = ["일일", "주간", "월간"]
 FILTER_CATEGORIES = ["전체"] + CATEGORIES
@@ -28,7 +27,7 @@ class TaskManager:
     def __init__(self, root):
         self.root = root
         self.root.title("던파 숙제 스케줄러")
-        self.root.geometry("1000x950")
+        self.root.geometry("1050x1000")
 
         # 데이터 초기화
         # tasks[group][character] = [ {task, done, comment, cat}, ... ]
@@ -42,7 +41,7 @@ class TaskManager:
 
         # --- UI ---
 
-        # 상단: 군/캐릭터 선택 (각 군별 콤보 + 추가/삭제)
+        # 상단: 군/캐릭터 선택 (각 군별 콤보 + 추가/삭제/이동)
         top_frame = tk.Frame(root)
         top_frame.pack(pady=5)
         self.char_selectors = {}
@@ -58,8 +57,9 @@ class TaskManager:
                 self.char_selectors[group].pack()
                 btn_row = tk.Frame(frame, bg=GROUP_COLORS[group])
                 btn_row.pack(pady=2)
-                tk.Button(btn_row, text="캐릭터 추가", command=lambda g=group: self.add_character(g)).pack(side=tk.LEFT, padx=2)
-                tk.Button(btn_row, text="캐릭터 삭제", command=lambda g=group: self.delete_character(g)).pack(side=tk.LEFT, padx=2)
+                tk.Button(btn_row, text="캐릭터 추가", command=lambda g=group: self.add_character(g)).pack(side=tk.LEFT, padx=1)
+                tk.Button(btn_row, text="캐릭터 삭제", command=lambda g=group: self.delete_character(g)).pack(side=tk.LEFT, padx=1)
+                tk.Button(btn_row, text="캐릭터 이동", command=lambda g=group: self.move_character(g)).pack(side=tk.LEFT, padx=1)
             self.char_selectors[group].bind("<<ComboboxSelected>>", lambda e,g=group: self.switch_character(g))
 
         # 벞교 파티 (추가/편집/삭제)
@@ -70,7 +70,7 @@ class TaskManager:
         self.party_selector.bind("<<ComboboxSelected>>", lambda e: self.switch_party())
         tk.Button(party_frame, text="파티 추가", command=self.add_party).pack(side=tk.LEFT, padx=5)
         tk.Button(party_frame, text="파티 편집", command=self.edit_party_members).pack(side=tk.LEFT, padx=5)
-        tk.Button(party_frame, text="파티 삭제", command=self.delete_party).pack(side=tk.LEFT, padx=5)  # ★ 추가됨
+        tk.Button(party_frame, text="파티 삭제", command=self.delete_party).pack(side=tk.LEFT, padx=5)
 
         # 검색/필터 (종류 필터 포함)
         filter_frame = tk.Frame(root)
@@ -108,7 +108,7 @@ class TaskManager:
         self.tree.column("comment", width=300)
         self.tree.pack(pady=5, fill=tk.BOTH, expand=True)
 
-        # Treeview 클릭 (상태 토글)
+        # 상태 토글
         self.tree.bind("<Button-1>", self.on_tree_click)
 
         # --- 선택/호버 오버레이 억제 (행 배경 유지) ---
@@ -146,6 +146,8 @@ class TaskManager:
         tk.Button(button_frame,text="코멘트 추가/보기",command=self.add_comment).grid(row=0,column=0,padx=5)
         tk.Button(button_frame,text="숙제 삭제",command=self.delete_task).grid(row=0,column=1,padx=5)
         tk.Button(button_frame,text="전체 완료/해제",command=self.toggle_all_tasks).grid(row=0,column=2,padx=5)
+        tk.Button(button_frame,text="위로",command=lambda: self.move_task(-1)).grid(row=0,column=3,padx=5)
+        tk.Button(button_frame,text="아래로",command=lambda: self.move_task(1)).grid(row=0,column=4,padx=5)
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         self.switch_character("공통")
@@ -187,6 +189,31 @@ class TaskManager:
         self.char_selectors[group]["values"]=list(self.tasks[group].keys())
         self.char_selectors[group].set('')
         # 화면 갱신 및 저장
+        self.save_data()
+        self.update_treeview()
+
+    def move_character(self, group):
+        name = self.char_selectors[group].get()
+        if not name:
+            messagebox.showinfo("알림","이동할 캐릭터를 선택하세요.")
+            return
+        target = simpledialog.askstring("군 이동", "이동할 군 입력 (공통,1군,2군,3군,4군):")
+        if target not in self.tasks:
+            messagebox.showinfo("알림","잘못된 군 이름입니다.")
+            return
+        if target == group:
+            return
+        # 캐릭터와 숙제 데이터 이동
+        self.tasks[target][name] = self.tasks[group][name]
+        del self.tasks[group][name]
+        # 파티에는 그대로 두거나 필요시 이동 로직 추가 가능
+        # 콤보 갱신
+        self.char_selectors[group]["values"]=list(self.tasks[group].keys())
+        self.char_selectors[group].set('')
+        self.char_selectors[target]["values"]=list(self.tasks[target].keys())
+        self.char_selectors[target].set(name)
+        self.current_group=target
+        self.current_character=name
         self.save_data()
         self.update_treeview()
 
@@ -273,6 +300,42 @@ class TaskManager:
         self.task_entry.delete(0,tk.END)
         self.update_treeview()
         self.save_data()
+
+    def move_task(self, direction):
+        """선택된 숙제를 위/아래로 이동 (캐릭터 단일 보기에서만 가능)"""
+        sel=self.tree.selection()
+        if not sel:
+            messagebox.showinfo("알림","이동할 숙제를 선택하세요.")
+            return
+        if not self.current_character:
+            messagebox.showinfo("알림","파티 보기가 아니라 캐릭터 보기에선 이동 가능합니다.")
+            return
+        item=self.tree.item(sel[0])
+        cat_val, taskcol, _status, _comment = item["values"]
+        try:
+            char = taskcol[1:taskcol.index("]")]
+            task_text = taskcol[taskcol.index("]")+2:]
+        except:
+            return
+        if char != self.current_character:
+            messagebox.showinfo("알림","현재 선택 캐릭터의 숙제만 이동할 수 있습니다.")
+            return
+        tasks=self.tasks[self.current_group][char]
+        idx=next((i for i,t in enumerate(tasks) if t["task"]==task_text and t.get("cat","")==cat_val), None)
+        if idx is None: return
+        new_idx = idx+direction
+        if 0 <= new_idx < len(tasks):
+            tasks[idx], tasks[new_idx] = tasks[new_idx], tasks[idx]
+            self.save_data()
+            # 갱신 후 같은 항목 재선택
+            prev_values = (cat_val, taskcol)
+            self.update_treeview()
+            for iid in self.tree.get_children():
+                v = self.tree.item(iid,"values")
+                if v[0]==prev_values[0] and v[1]==prev_values[1]:
+                    self.tree.selection_set(iid)
+                    self.tree.see(iid)
+                    break
 
     def update_treeview(self):
         self.tree.delete(*self.tree.get_children())
@@ -366,7 +429,7 @@ class TaskManager:
     # 코멘트/삭제/전체완료
     def add_comment(self):
         g,char,t,_cat = self.get_selected_task()
-        if not t: 
+        if not t:
             messagebox.showinfo("알림","코멘트를 추가할 숙제를 선택하세요.")
             return
         comment=simpledialog.askstring("코멘트", "코멘트 입력:", initialvalue=t.get("comment",""))
@@ -377,7 +440,7 @@ class TaskManager:
 
     def delete_task(self):
         g,char,t,_cat = self.get_selected_task()
-        if not t: 
+        if not t:
             messagebox.showinfo("알림","삭제할 숙제를 선택하세요.")
             return
         self.tasks[g][char].remove(t)
@@ -389,18 +452,20 @@ class TaskManager:
         if self.current_character:
             entries=[t for t in self.tasks[self.current_group][self.current_character]]
         elif self.current_party:
-            for char in self.parties[self.current_party]:
+            for char in self.parties.get(self.current_party, []):
                 for g in ["1군","2군","3군","4군"]:
-                    if char in self.tasks[g]: entries.extend(self.tasks[g][char])
+                    if char in self.tasks[g]:
+                        entries.extend(self.tasks[g][char])
         # 종류 필터 적용(현재 화면 기준)
         cat_filter = self.cat_filter.get()
         if cat_filter != "전체":
             entries = [t for t in entries if t.get("cat")==cat_filter]
-
-        if not entries: return
+        if not entries:
+            return
         all_done = all(t.get("done") for t in entries)
         new_state = not all_done
-        for t in entries: t["done"]=new_state
+        for t in entries:
+            t["done"]=new_state
         self.update_treeview()
         self.save_data()
 
