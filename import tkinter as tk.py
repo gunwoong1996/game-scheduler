@@ -46,6 +46,7 @@ class TaskManager:
         self.current_group     = None
         self.current_character = None
         self.current_party     = None
+        
 
         # =============== 상단: 군/캐릭터 선택 ===============
         top = tk.Frame(root); top.pack(pady=5)
@@ -105,11 +106,10 @@ class TaskManager:
         self.tree.bind("<Button-1>", self.on_tree_click)
 
         # Treeview 스타일: 선택 하이라이트 제거 + 굵은 글씨
-        style = ttk.Style()
-        try: style.theme_use("clam")
-        except: pass
-        style.configure("Treeview", font=("맑은 고딕",10,"bold"), rowheight=24, borderwidth=0, relief="flat")
-        style.map("Treeview", background=[("selected","")], foreground=[("selected","")])
+        style = ttk.Style() 
+        try: style.theme_use("clam") # 선택/배경 매핑 제어가 잘 되는 테마 
+        except: pass 
+        style.configure( "Treeview", font=("맑은 고딕", 10, "bold"), rowheight=24, borderwidth=0, relief="flat" )
 
         # =============== 보드 뷰 상단 ===============
         bt = tk.Frame(self.board_tab); bt.pack(fill=tk.X, pady=(5,0))
@@ -265,6 +265,7 @@ class TaskManager:
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
     def draw_card(self, g, ch, y_offset, idx):
+    # g: 군 이름("1군"... 또는 "즉흥"), ch: 캐릭터명
         tasks = self.tasks[g][ch] if g in self.tasks and ch in self.tasks[g] else []
         done_cnt = sum(1 for t in tasks if t.get("done"))
         total_cnt = len(tasks)
@@ -273,25 +274,38 @@ class TaskManager:
         card_color = GROUP_COLORS[g] if g in GROUP_COLORS else "#CCCCCC"
         card = tk.Frame(self.canvas, width=CARD_W, height=CARD_H, bd=2, relief="ridge", bg=card_color)
         card.pack_propagate(False)
+
+    # 헤더
         tk.Label(card, text=f"{ch}", font=("맑은 고딕",10,"bold"), bg=card_color).pack()
         tk.Label(card, text=f"{g} • {done_cnt}/{total_cnt} 완료", bg=card_color).pack()
 
-        row = tk.Frame(card, bg=card_color); row.pack(fill="x", padx=4, pady=2)
-        for tag in BUFF_TAGS:
+  
+
+    # 체크박스 2줄 배치
+        row1 = tk.Frame(card, bg=card_color); row1.pack(fill="x", padx=4, pady=1)
+        row2 = tk.Frame(card, bg=card_color); row2.pack(fill="x", padx=4, pady=1)
+
+        for i, tag in enumerate(BUFF_TAGS):
             var = tk.BooleanVar(value=(tag in char_tags))
-            chk = tk.Checkbutton(row, text=tag, variable=var,
-                                 command=lambda name=ch,t=tag,v=var:self.toggle_buff_tag(name,t,v),
-                                 bg=card_color, anchor="w")
+            chk = tk.Checkbutton(
+            row1 if i < 2 else row2,
+            text=tag, variable=var,
+            command=lambda name=ch,t=tag,v=var:self.toggle_buff_tag(name,t,v),
+            bg=card_color, anchor="w"
+    )
             chk.pack(side=tk.LEFT, padx=2)
 
-        # 즉흥 추가 버튼
+
+    # 즉흥 파티 추가 버튼(유지)
         tk.Button(card, text="+즉흥", command=lambda name=ch: self.add_to_adhoc(name)).pack(pady=2)
 
+    # 배치
         row_idx = idx // COLS
         col_idx = idx % COLS
         x = 12 + col_idx * BOARD_X_STEP
         y = y_offset + row_idx * BOARD_Y_STEP
         self.canvas.create_window(x, y, window=card, anchor="nw")
+
     # ================= 즉흥 파티 =================
     def add_to_adhoc(self, name):
         if name not in self.adhoc_party:

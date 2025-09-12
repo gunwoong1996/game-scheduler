@@ -105,11 +105,10 @@ class TaskManager:
         self.tree.bind("<Button-1>", self.on_tree_click)
 
         # Treeview 스타일: 선택 하이라이트 제거 + 굵은 글씨
-        style = ttk.Style()
-        try: style.theme_use("clam")
-        except: pass
-        style.configure("Treeview", font=("맑은 고딕",10,"bold"), rowheight=24, borderwidth=0, relief="flat")
-        style.map("Treeview", background=[("selected","")], foreground=[("selected","")])
+        style = ttk.Style() 
+        try: style.theme_use("clam") # 선택/배경 매핑 제어가 잘 되는 테마 
+        except: pass 
+        style.configure( "Treeview", font=("맑은 고딕", 10, "bold"), rowheight=24, borderwidth=0, relief="flat" )
 
         # =============== 보드 뷰 상단 ===============
         bt = tk.Frame(self.board_tab); bt.pack(fill=tk.X, pady=(5,0))
