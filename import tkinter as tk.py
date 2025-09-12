@@ -22,7 +22,7 @@ FILTER_CATEGORIES = ["전체"] + CATEGORIES
 BUFF_TAGS         = ["나벨","상던","베누스","이내"]  # 네 개 모두 포함
 
 # 보드뷰 카드/배치
-CARD_W, CARD_H    = 200, 100
+CARD_W, CARD_H    = 200, 150
 BOARD_X_STEP      = 220
 BOARD_Y_STEP      = 120
 COLS              = 4
